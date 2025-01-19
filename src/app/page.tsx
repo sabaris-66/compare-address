@@ -4,11 +4,22 @@
 import { useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 
+interface Metrics {
+  [key: string]: number;
+}
+
+interface ComparisonResult {
+  match: boolean;
+  confidence: number;
+  reasoning: string;
+  metrics?: Metrics;
+}
+
 export default function Home() {
   const [address1, setAddress1] = useState('');
   const [address2, setAddress2] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<ComparisonResult | null>(null);
   const { toast } = useToast();
 
   const handleCompare = async (e: React.FormEvent) => {
@@ -29,7 +40,7 @@ export default function Home() {
         throw new Error(error.error || `Error: ${response.status}`);
       }
 
-      const data = await response.json();
+      const data: ComparisonResult = await response.json();
       setResult(data);
 
       toast({
@@ -38,10 +49,14 @@ export default function Home() {
         variant: data.match ? "default" : "destructive",
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Failed to compare addresses. Please try again.";
+        
       toast({
         title: "Error",
-        description: error.message || "Failed to compare addresses. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -132,30 +147,30 @@ export default function Home() {
             </div>
 
             {result.metrics && (
-              <div>
-                <span className="font-medium">Detailed Metrics:</span>
-                <div className="mt-2 space-y-2">
-                  {Object.entries(result.metrics).map(([key, value]: [string, any]) => (
-                    <div key={key} className="flex items-center">
-                      <span className="text-sm text-gray-600 capitalize">
-                        {key.replace(/([A-Z])/g, ' $1').trim()}:
-                      </span>
-                      <div className="ml-2 flex-1">
-                        <div className="bg-gray-200 rounded-full h-1.5">
-                          <div
-                            className="bg-blue-600 h-1.5 rounded-full"
-                            style={{ width: `${value * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                      <span className="ml-2 text-sm text-gray-600">
-                        {(value * 100).toFixed(0)}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
+    <div>
+      <span className="font-medium">Detailed Metrics:</span>
+      <div className="mt-2 space-y-2">
+        {Object.entries(result.metrics).map(([key, value]: [string, number]) => (
+          <div key={key} className="flex items-center">
+            <span className="text-sm text-gray-600 capitalize">
+              {key.replace(/([A-Z])/g, ' $1').trim()}:
+            </span>
+            <div className="ml-2 flex-1">
+              <div className="bg-gray-200 rounded-full h-1.5">
+                <div
+                  className="bg-blue-600 h-1.5 rounded-full"
+                  style={{ width: `${value * 100}%` }}
+                />
               </div>
-            )}
+            </div>
+            <span className="ml-2 text-sm text-gray-600">
+              {(value * 100).toFixed(0)}%
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
           </div>
         </div>
       )}
